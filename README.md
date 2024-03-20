@@ -17,7 +17,7 @@ Energy Tracker is a customisable widget for iOS devices, designed to work with t
 
 1. **Download Scriptable**: If you haven't already, download and install the Scriptable app from the iOS App Store.
 2. **Add the Script**: Open Scriptable and tap the '+' icon to create a new script. Name it `Octopus Energy Tracker`.
-3. **Copy and Paste**: Copy the code from the `Energy Tracker.js` file (available in this GitHub repository) and paste it into the newly created script in Scriptable.
+3. **Copy and Paste**: Copy the code from the `Energy Tracker Script.js` file (available in this GitHub repository) and paste it into the newly created script in Scriptable.
 
 ## Usage
 
