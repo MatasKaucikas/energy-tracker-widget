@@ -93,7 +93,7 @@ async function displayTariffData(productCode, tariffCode, symbolName) {
         subText = `Tomorrow: N/A`;
         subElement = widget.addText(subText);
         subElement.textColor = Color.white();
-        subElement.font = Font.systemFont(8);
+        subElement.font = Font.systemFont(12);
     }
 
     widget.addSpacer(20); // Add final spacer for layout
