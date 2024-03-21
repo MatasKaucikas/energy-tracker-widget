@@ -25,8 +25,8 @@ After installing the script, you can add the widget to your home screen:
 
 1. **Long Press on Home Screen**: Enter jiggle mode by long-pressing an empty area on your home screen or pressing and holding an app until the apps start jiggling.
 2. **Add Widget**: Tap the '+' icon in the top left corner, search for Scriptable, and select it.
-3. **Choose Widget Size**: Pick the medium-sized widget for the best layout, and tap 'Add Widget'.
-4. **Configure Widget**: Tap the newly added widget, select 'Energy Tracker' from the Script option, and hit 'Choose'.
+3. **Choose Widget Size**: Pick the smallest-sized widget for the best layout, and tap 'Add Widget'.
+4. **Configure Widget**: Tap and hold the newly added widget, select 'Edit Widget' and then select the 'Energy Tracker' from the Script option, and hit 'Choose'.
 5. **Place the Widget**: Move the widget to your preferred location on the home screen.
 
 ## Customisation
