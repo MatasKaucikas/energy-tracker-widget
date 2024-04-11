@@ -128,10 +128,10 @@ async function displayTariffData(productCode, tariffCode, symbolName) {
 }
 
 const regionCode = "C"; // Region code for London. Please change this to your region code if different
-const gasProductCode = "SILVER-BB-23-12-06"; // Product code for Octopus Tracker Decemeber 2023 v1
+const gasProductCode = "SILVER-23-12-06"; // Product code for Octopus Tracker Decemeber 2023 v1
 const electricityProductCode = "AGILE-23-12-06"; // Product code for Agile Octopus December 2023 v1
-const gasTariffCode = "G-1R-SILVER-23-12-06-${regionCode}"; // Tariff code for Octopus Tracker
-const electricityTariffCode = "E-1R-AGILE-23-12-06-${regionCode}"; // Tariff code for Agile Octopus
+const gasTariffCode = `G-1R-SILVER-23-12-06-${regionCode}`; // Tariff code for Octopus Tracker
+const electricityTariffCode = `E-1R-AGILE-23-12-06-${regionCode}`; // Tariff code for Agile Octopus
 
 // Display tariff information for gas and electricity
 await displayTariffData(gasProductCode, gasTariffCode, "flame.fill");
