@@ -11,7 +11,7 @@ Energy Tracker is a customisable widget for iOS devices, designed to work with t
 ## Requirements
 
 - iOS 14.0 or later.
-- [Scriptable]((https://scriptable.app/)) installed on your device.
+- [Scriptable](https://scriptable.app/) installed on your device.
 
 ## Installation
 
