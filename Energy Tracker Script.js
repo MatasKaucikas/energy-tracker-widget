@@ -11,7 +11,7 @@ header.textColor = Color.white(); // Set the color of the header text
 widget.addSpacer(8); // Add space below the header
 
 // Function to adjust the given date for British Summer Time (BST)
-async function adjustForBST(date) {
+function adjustForBST(date) {
     // BST starts at 01:00 UTC on the last Sunday of March
     const bstStart = new Date(Date.UTC(date.getUTCFullYear(), 2, 31));
     bstStart.setUTCDate(bstStart.getUTCDate() - bstStart.getUTCDay()); // Move to last Sunday
@@ -41,10 +41,12 @@ async function fetchTariffData(productCode, tariffCode) {
     if (tariffType == 'electricity') {
         // Handle electricity tariffs (half-hourly updates)
         const startOfHalfHour = new Date(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate(), today.getUTCHours(), today.getUTCMinutes() >= 30 ? 30 : 0, 0);
+        startOfHalfHour = adjustForBST(startOfHalfHour);
         const endOfHalfHour = new Date(startOfHalfHour.getTime() + (30 * 60 * 1000));
         urlToday = `${baseUrl}electricity-tariffs/${tariffCode}/standard-unit-rates/?period_from=${startOfHalfHour.toISOString()}&period_to=${endOfHalfHour.toISOString()}`;
 
         const startOfHalfHourTomorrow = new Date(tomorrow.getUTCFullYear(), tomorrow.getUTCMonth(), tomorrow.getUTCDate(), tomorrow.getUTCHours(), tomorrow.getUTCMinutes() >= 30 ? 30 : 0, 0);
+        startOfHalfHourTomorrow = adjustForBST(startOfHalfHourTomorrow);
         const endOfHalfHourTomorrow = new Date(startOfHalfHourTomorrow.getTime() + (30 * 60 * 1000));
         urlTomorrow = `${baseUrl}electricity-tariffs/${tariffCode}/standard-unit-rates/?period_from=${startOfHalfHourTomorrow.toISOString()}&period_to=${endOfHalfHourTomorrow.toISOString()}`;
     } else if (tariffType == 'gas') {
