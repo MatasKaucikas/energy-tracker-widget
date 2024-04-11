@@ -1,6 +1,6 @@
 // Scriptable Widget for Displaying Energy and Gas Tariff Information
 // Adapted from https://github.com/smalley1992/smalley1992.github.io/blob/main/OctopusTrackerSmallWidget.scriptable
-// CS March 2024
+
 const widget = new ListWidget(); // Initialise a new list widget
 widget.backgroundColor = new Color("#100030"); // Set the background color of the widget
 
@@ -10,10 +10,30 @@ header.font = Font.boldSystemFont(14); // Set the font and size of the header
 header.textColor = Color.white(); // Set the color of the header text
 widget.addSpacer(8); // Add space below the header
 
+// Function to adjust the given date for British Summer Time (BST)
+async function adjustForBST(date) {
+    // BST starts at 01:00 UTC on the last Sunday of March
+    const bstStart = new Date(Date.UTC(date.getUTCFullYear(), 2, 31));
+    bstStart.setUTCDate(bstStart.getUTCDate() - bstStart.getUTCDay()); // Move to last Sunday
+    bstStart.setUTCHours(1, 0, 0, 0); // Set to 01:00 UTC
+
+    // BST ends at 01:00 UTC on the last Sunday of October
+    const bstEnd = new Date(Date.UTC(date.getUTCFullYear(), 9, 31));
+    bstEnd.setUTCDate(bstEnd.getUTCDate() - bstEnd.getUTCDay());
+    bstEnd.setUTCHours(1, 0, 0, 0);
+
+    // Check if current date is within BST period
+    if (date >= bstStart && date < bstEnd) {
+        // Adjust for BST by adding one hour
+        return new Date(date.getTime() + 3600000);
+    }
+    return date; // Return unmodified date if not within BST period
+}
+
 // Function to fetch tariff data for electricity or gas
 async function fetchTariffData(productCode, tariffCode) {
-    const today = new Date(); // Get today's date
-    const tomorrow = new Date(today.getTime() + 86400000); // Calculate tomorrow's date
+    const today = adjustForBST(new Date()); // Get today's date
+    const tomorrow = adjustForBST(new Date(today.getTime() + 86400000)); // Calculate tomorrow's date
     const baseUrl = `https://api.octopus.energy/v1/products/${productCode}/`; // Base URL for the API
     const tariffType = tariffCode.substring(0, 1).toUpperCase() == 'G' ? 'gas' : 'electricity';
 
@@ -93,17 +113,17 @@ async function displayTariffData(productCode, tariffCode, symbolName) {
         subText = `Tomorrow: N/A`;
         subElement = widget.addText(subText);
         subElement.textColor = Color.white();
-        subElement.font = Font.systemFont(12);
+        subElement.font = Font.systemFont(8);
     }
 
     widget.addSpacer(20); // Add final spacer for layout
 }
 
 const regionCode = "C"; // Region code for London. Please change this to your region code if different
-const gasProductCode = "SILVER-23-12-06"; // Product code for Octopus Tracker Decemeber 2023 v1
+const gasProductCode = "SILVER-BB-23-12-06"; // Product code for Octopus Tracker Decemeber 2023 v1
 const electricityProductCode = "AGILE-23-12-06"; // Product code for Agile Octopus December 2023 v1
-const gasTariffCode = `G-1R-SILVER-23-12-06-${regionCode}`; // Tariff code for Octopus Tracker
-const electricityTariffCode = `E-1R-AGILE-23-12-06-${regionCode}`; // Tariff code for Agile Octopus
+const gasTariffCode = "G-1R-SILVER-23-12-06-${regionCode}"; // Tariff code for Octopus Tracker
+const electricityTariffCode = "E-1R-AGILE-23-12-06-${regionCode}"; // Tariff code for Agile Octopus
 
 // Display tariff information for gas and electricity
 await displayTariffData(gasProductCode, gasTariffCode, "flame.fill");
