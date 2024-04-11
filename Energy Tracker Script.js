@@ -40,12 +40,12 @@ async function fetchTariffData(productCode, tariffCode) {
     let urlToday, urlTomorrow;
     if (tariffType == 'electricity') {
         // Handle electricity tariffs (half-hourly updates)
-        const startOfHalfHour = new Date(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate(), today.getUTCHours(), today.getUTCMinutes() >= 30 ? 30 : 0, 0);
+        let startOfHalfHour = new Date(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate(), today.getUTCHours(), today.getUTCMinutes() >= 30 ? 30 : 0, 0);
         startOfHalfHour = adjustForBST(startOfHalfHour);
         const endOfHalfHour = new Date(startOfHalfHour.getTime() + (30 * 60 * 1000));
         urlToday = `${baseUrl}electricity-tariffs/${tariffCode}/standard-unit-rates/?period_from=${startOfHalfHour.toISOString()}&period_to=${endOfHalfHour.toISOString()}`;
 
-        const startOfHalfHourTomorrow = new Date(tomorrow.getUTCFullYear(), tomorrow.getUTCMonth(), tomorrow.getUTCDate(), tomorrow.getUTCHours(), tomorrow.getUTCMinutes() >= 30 ? 30 : 0, 0);
+        let startOfHalfHourTomorrow = new Date(tomorrow.getUTCFullYear(), tomorrow.getUTCMonth(), tomorrow.getUTCDate(), tomorrow.getUTCHours(), tomorrow.getUTCMinutes() >= 30 ? 30 : 0, 0);
         startOfHalfHourTomorrow = adjustForBST(startOfHalfHourTomorrow);
         const endOfHalfHourTomorrow = new Date(startOfHalfHourTomorrow.getTime() + (30 * 60 * 1000));
         urlTomorrow = `${baseUrl}electricity-tariffs/${tariffCode}/standard-unit-rates/?period_from=${startOfHalfHourTomorrow.toISOString()}&period_to=${endOfHalfHourTomorrow.toISOString()}`;
@@ -63,14 +63,20 @@ async function fetchTariffData(productCode, tariffCode) {
 
     let dataToday, dataTomorrow;
     try {
-        // Fetch and process today's tariff data
         let responseToday = await new Request(urlToday).loadJSON();
-        dataToday = responseToday.results[0]?.value_inc_vat.toFixed(2);
-        // Fetch and process tomorrow's tariff data
+        if (responseToday.results && responseToday.results.length > 0) {
+            dataToday = responseToday.results[0].value_inc_vat.toFixed(2);
+        } else {
+            throw new Error('Invalid or empty results array for today');
+        }
+
         let responseTomorrow = await new Request(urlTomorrow).loadJSON();
-        dataTomorrow = responseTomorrow.results[0]?.value_inc_vat.toFixed(2);
+        if (responseTomorrow.results && responseTomorrow.results.length > 0) {
+            dataTomorrow = responseTomorrow.results[0].value_inc_vat.toFixed(2);
+        } else {
+            throw new Error('Invalid or empty results array for tomorrow');
+        }
     } catch (error) {
-        // Handle errors by setting data to "N/A"
         console.error(`Error fetching tariff data: ${error}`);
         dataToday = "N/A";
         dataTomorrow = "N/A";
