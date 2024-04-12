@@ -1,3 +1,6 @@
+// Scriptable Widget for Displaying Energy and Gas Tariff Information
+// Adapted from https://github.com/smalley1992/smalley1992.github.io/blob/main/OctopusTrackerSmallWidget.scriptable
+
 // Constants for configuration
 const BASE_URL = "https://api.octopus.energy/v1/products/";
 const WHITE_COLOR = new Color("#ffffff");
@@ -67,9 +70,11 @@ async function displayTariffData(productCode, tariffCode, symbolName, widget) {
     img.tintColor = WHITE_COLOR;
     img.imageSize = new Size(30, 30);
     img.resizable = true;
-    row.addSpacer(8);
+    row.addSpacer(10);
 
     createText(row, `${data.today}p`, 23, WHITE_COLOR);
+
+    widget.addSpacer(10);
 
     // Display tomorrow's price and change
     if (data.tomorrow !== "N/A") {
@@ -79,17 +84,17 @@ async function displayTariffData(productCode, tariffCode, symbolName, widget) {
         let subText = `Tomorrow: ${data.tomorrow}p ${arrow}`;
         createText(widget, subText, 12, textColor);
     } else {
-        createText(widget, "Tomorrow: N/A", 8, WHITE_COLOR);
+        createText(widget, "Tomorrow: N/A", 12, WHITE_COLOR);
     }
 
-    widget.addSpacer(20); // Add final spacer for layout
+    widget.addSpacer(10); // Add final spacer for layout
 }
 
 // Initialize widget and set properties
 const widget = new ListWidget();
 widget.backgroundColor = new Color("#100030");
-createText(widget, "Energy Tracker", 14, WHITE_COLOR);
-widget.addSpacer(4);
+createText(widget, "Energy Tracker", 16, WHITE_COLOR);
+widget.addSpacer(8);
 const regionCode = "C";
 const gasProductCode = "SILVER-23-12-06";
 const electricityProductCode = "AGILE-23-12-06";
