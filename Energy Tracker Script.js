@@ -10,6 +10,14 @@ header.font = Font.boldSystemFont(14); // Set the font and size of the header
 header.textColor = Color.white(); // Set the color of the header text
 widget.addSpacer(8); // Add space below the header
 
+function adjustForBST(date) {
+    if (isBST(date)) {
+        // Add one hour if the date is within BST period
+        return new Date(date.getTime() + 3600000);
+    }
+    return date;
+}
+
 // Function to adjust the given date for British Summer Time (BST)
 function isBST(date) {
     var lastMarchSunday = new Date(Date.UTC(date.getUTCFullYear(), 2, 31));
@@ -19,79 +27,55 @@ function isBST(date) {
     return date >= lastMarchSunday && date < lastOctoberSunday;
 }
 
-function adjustForBST(date) {
-    if (isBST(date)) {
-        // Add one hour if the date is within BST period
-        return new Date(date.getTime() + 3600000);
-    }
-    return date;
-}
-
 async function fetchTariffData(productCode, tariffCode) {
-    const londonTime = new Date(new Date().toLocaleString("en-US", { timeZone: "Europe/London" }));
-    const currentHour = londonTime.getHours();
+    const now = new Date();
+    const londonTime = new Date(now.toLocaleString("en-US", { timeZone: "Europe/London" }));
+    const currentMinute = londonTime.getMinutes();
 
-    let today = new Date();
-    let tomorrow = new Date(today.getTime() + 86400000);
+    // Adjusting the time to the closest previous half-hour mark for electricity
+    let minutesToSubtract = currentMinute >= 30 ? currentMinute - 30 : currentMinute;
+    let periodStartToday = new Date(londonTime.getTime() - minutesToSubtract * 60000);
+    let periodEndToday = new Date(periodStartToday.getTime() + 30 * 60000); // Adding 30 minutes
 
-    // Adjusting the base dates if before 4 PM London time
-    if (currentHour < 16) {
-        today = new Date(today.getTime() - 86400000); // Move 'today' one day back
-        tomorrow = new Date(); // Set 'tomorrow' to today
-    }
+    // Calculate the start period for tomorrow at the same time for electricity
+    let periodStartTomorrow = new Date(periodStartToday.getTime() + 86400000); // Add one day
+    let periodEndTomorrow = new Date(periodStartTomorrow.getTime() + 30 * 60000); // 30 minutes after start
 
-    today = adjustForBST(today);
-    tomorrow = adjustForBST(tomorrow);
+    // Adjust for BST if applicable
+    periodStartToday = adjustForBST(periodStartToday);
+    periodEndToday = adjustForBST(periodEndToday);
+    periodStartTomorrow = adjustForBST(periodStartTomorrow);
+    periodEndTomorrow = adjustForBST(periodEndTomorrow);
 
     const baseUrl = `https://api.octopus.energy/v1/products/${productCode}/`;
     const tariffType = tariffCode.substring(0, 1).toUpperCase() === 'G' ? 'gas' : 'electricity';
-    
+
     let urlToday, urlTomorrow;
     if (tariffType === 'electricity') {
-        // Ensuring that the day aligns with 11 PM to 11 PM UK time logic
-        let startOfHalfHour = new Date(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate(), 23, 0, 0);
-        startOfHalfHour = adjustForBST(startOfHalfHour);
-        let endOfHalfHour = new Date(startOfHalfHour.getTime() + (30 * 60 * 1000));
-
-        let startOfHalfHourTomorrow = new Date(tomorrow.getUTCFullYear(), tomorrow.getUTCMonth(), tomorrow.getUTCDate(), 23, 0, 0);
-        startOfHalfHourTomorrow = adjustForBST(startOfHalfHourTomorrow);
-        let endOfHalfHourTomorrow = new Date(startOfHalfHourTomorrow.getTime() + (30 * 60 * 1000));
-
-        urlToday = `${baseUrl}electricity-tariffs/${tariffCode}/standard-unit-rates/?period_from=${startOfHalfHour.toISOString()}&period_to=${endOfHalfHour.toISOString()}`;
-        urlTomorrow = `${baseUrl}electricity-tariffs/${tariffCode}/standard-unit-rates/?period_from=${startOfHalfHourTomorrow.toISOString()}&period_to=${endOfHalfHourTomorrow.toISOString()}`;
+        urlToday = `${baseUrl}electricity-tariffs/${tariffCode}/standard-unit-rates/?period_from=${periodStartToday.toISOString()}&period_to=${periodEndToday.toISOString()}`;
+        urlTomorrow = `${baseUrl}electricity-tariffs/${tariffCode}/standard-unit-rates/?period_from=${periodStartTomorrow.toISOString()}&period_to=${periodEndTomorrow.toISOString()}`;
     } else if (tariffType === 'gas') {
-        const todayStr = today.toISOString().slice(0, 19) + 'Z';
-        const tomorrowStr = tomorrow.toISOString().slice(0, 19) + 'Z';
-
-        urlToday = `${baseUrl}gas-tariffs/${tariffCode}/standard-unit-rates/?period_from=${todayStr}T00:00:00Z&period_to=${todayStr}T23:59:59Z`;
-        urlTomorrow = `${baseUrl}gas-tariffs/${tariffCode}/standard-unit-rates/?period_from=${tomorrowStr}T00:00:00Z&period_to=${tomorrowStr}T23:59:59Z`;
+        // For gas tariffs, we only need to fetch once a day
+        let todayDateStr = periodStartToday.toISOString().split('T')[0]; // Only the date part
+        urlToday = `${baseUrl}gas-tariffs/${tariffCode}/standard-unit-rates/?period_from=${todayDateStr}T00:00:00Z&period_to=${todayDateStr}T23:59:59Z`;
+        urlTomorrow = `${baseUrl}gas-tariffs/${tariffCode}/standard-unit-rates/?period_from=${todayDateStr}T00:00:00Z&period_to=${todayDateStr}T23:59:59Z`;  // Same as today for gas
     } else {
         console.error(`Invalid tariff type: ${tariffType}`);
         return { today: "N/A", tomorrow: "N/A" };
     }
-    
-    let dataToday, dataTomorrow;
-    try {
-        let responseToday = await new Request(urlToday).loadJSON();
-        if (responseToday.results && responseToday.results.length > 0) {
-            dataToday = responseToday.results[0].value_inc_vat.toFixed(2);
-        } else {
-            throw new Error('Invalid or empty results array for today');
-        }
 
-        let responseTomorrow = await new Request(urlTomorrow).loadJSON();
-        if (responseTomorrow.results && responseTomorrow.results.length > 0) {
-            dataTomorrow = responseTomorrow.results[0].value_inc_vat.toFixed(2);
-        } else {
-            throw new Error('Invalid or empty results array for tomorrow');
+    // Fetch and process tariff data for today and tomorrow
+    try {
+        const responseToday = await new Request(urlToday).loadJSON();
+        console.log("Data fetched successfully for today:", responseToday);
+
+        if (tariffType === 'electricity') {
+            const responseTomorrow = await new Request(urlTomorrow).loadJSON();
+            console.log("Data fetched successfully for tomorrow's same half-hour:", responseTomorrow);
         }
     } catch (error) {
         console.error(`Error fetching tariff data: ${error}`);
-        dataToday = "N/A";
-        dataTomorrow = "N/A";
     }
-
-    return { today: dataToday, tomorrow: dataTomorrow }; // Return today and tomorrow's data
 }
 
 // Function to display the tariff data on the widget
