@@ -13,15 +13,26 @@ function createText(widget, content, fontSize, color, fontWeight = 'bold') {
 }
 
 // Function to adjust the current time to the closest previous half-hour mark
-function getAdjustedTimes() {
+function getPeriods() {
     const now = new Date();
-    const localTime = new Date(now.toLocaleString("en-US", { timeZone: "Europe/London" }));
-    const currentMinute = localTime.getMinutes();
-    const minutesToSubtract = currentMinute >= 30 ? currentMinute - 30 : currentMinute;
+    const londonTime = new Date(now.toLocaleString("en-US", { timeZone: "Europe/London" }));
 
-    let periodStart = new Date(localTime.getTime() - minutesToSubtract * 60000);
-    let periodEnd = new Date(periodStart.getTime() + 30 * 60000);
-    return { periodStart, periodEnd };
+    // Set to the start of the current hour
+    londonTime.setMinutes(0, 0, 0);  
+
+    // Check if current time is past the half hour and adjust
+    if (new Date().getMinutes() >= 30) {
+        londonTime.setMinutes(30);
+    }
+
+    let periodStartToday = new Date(londonTime.getTime());
+    let periodEndToday = new Date(londonTime.getTime() + 30 * 60000); // 30 minutes later
+
+    // Calculate the periods for tomorrow by adding 24 hours
+    let periodStartTomorrow = new Date(periodStartToday.getTime() + 86400000);
+    let periodEndTomorrow = new Date(periodEndToday.getTime() + 86400000);
+
+    return { periodStartToday, periodEndToday, periodStartTomorrow, periodEndTomorrow };
 }
 
 // Function to build URL for API request
@@ -38,7 +49,7 @@ async function fetchTariffData(productCode, tariffCode, tariffType) {
 
     try {
         const response = await new Request(url).loadJSON();
-        return response.results[0].value_inc_vat || "N/A";
+        return response.results[0].value_inc_vat.toFixed(2) || "N/A";
     } catch (error) {
         console.error(`Error fetching data: ${error}`);
         return "N/A";
@@ -48,7 +59,7 @@ async function fetchTariffData(productCode, tariffCode, tariffType) {
 // Main function to display tariff data
 async function displayTariffData(productCode, tariffCode, symbolName, widget) {
     const tariffType = tariffCode.charAt(0) === 'G' ? 'gas' : 'electricity';
-    const priceToday = await fetchTariffData(productCode, tariffCode, tariffType);
+    const data = await fetchTariffData(productCode, tariffCode, tariffType);
 
     let row = widget.addStack();
     row.centerAlignContent();
@@ -61,11 +72,26 @@ async function displayTariffData(productCode, tariffCode, symbolName, widget) {
     img.resizable = true;
     row.addSpacer(8);
 
-    createText(row, `${priceToday}p`, 20, WHITE_COLOR);
+    // Display today's price
+    createText(row, `${data.today}p`, 23, WHITE_COLOR);
+
+    widget.addSpacer(4); // Add a small spacer
+
+    // Display tomorrow's price and change
+    if (data.tomorrow !== "N/A") {
+        let change = data.today !== "N/A" ? ((parseFloat(data.tomorrow) - parseFloat(data.today)) / parseFloat(data.today)) * 100 : 0;
+        let arrow = change > 0 ? "↑" : (change < 0 ? "↓" : ""); // Determine arrow based on change
+        let textColor = change > 0 ? ERROR_COLOR : (change < 0 ? SUCCESS_COLOR : WHITE_COLOR);
+        let subText = `Tomorrow: ${data.tomorrow}p ${arrow}`;
+        createText(widget, subText, 12, textColor);
+    } else {
+        createText(widget, "Tomorrow: N/A", 8, WHITE_COLOR);
+    }
+
     widget.addSpacer(20); // Add final spacer for layout
 }
 
-// Initialize widget and set properties
+// Initialise widget and set properties
 const widget = new ListWidget();
 widget.backgroundColor = new Color("#100030");
 
