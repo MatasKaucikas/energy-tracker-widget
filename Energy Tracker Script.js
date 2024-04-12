@@ -32,24 +32,35 @@ function buildUrl(productCode, tariffCode, periodStart, periodEnd, tariffType) {
 }
 
 // Function to fetch tariff data
+// Fetches tariff data for both today and tomorrow
 async function fetchTariffData(productCode, tariffCode, tariffType) {
     const { periodStart, periodEnd } = getAdjustedTimes();
-    let url = buildUrl(productCode, tariffCode, periodStart, periodEnd, tariffType);
+    const periodStartTomorrow = new Date(periodStart.getTime() + 86400000);
+    const periodEndTomorrow = new Date(periodEnd.getTime() + 86400000);
+
+    let urlToday = buildUrl(productCode, tariffCode, periodStart, periodEnd, tariffType);
+    let urlTomorrow = buildUrl(productCode, tariffCode, periodStartTomorrow, periodEndTomorrow, tariffType);
+
     try {
-        const response = await new Request(url).loadJSON();
-        return response.results[0].value_inc_vat || "N/A";
+        const responseToday = await new Request(urlToday).loadJSON();
+        const responseTomorrow = await new Request(urlTomorrow).loadJSON();
+        const todayPrice = responseToday.results[0]?.value_inc_vat || "N/A";
+        const tomorrowPrice = responseTomorrow.results[0]?.value_inc_vat || "N/A";
+        return { today: todayPrice, tomorrow: tomorrowPrice };
     } catch (error) {
         console.error(`Error fetching data: ${error}`);
-        return "N/A";
+        return { today: "N/A", tomorrow: "N/A" };
     }
 }
 
-// Main function to display tariff data
+// Function to display tariff data including tomorrow's forecast
 async function displayTariffData(productCode, tariffCode, symbolName, widget) {
     const tariffType = tariffCode.charAt(0) === 'G' ? 'gas' : 'electricity';
-    const priceToday = await fetchTariffData(productCode, tariffCode, tariffType);
+    const data = await fetchTariffData(productCode, tariffCode, tariffType);
+
     let row = widget.addStack();
     row.centerAlignContent();
+
     const symbol = SFSymbol.named(symbolName);
     symbol.applyMediumWeight();
     const img = row.addImage(symbol.image);
@@ -57,7 +68,20 @@ async function displayTariffData(productCode, tariffCode, symbolName, widget) {
     img.imageSize = new Size(30, 30);
     img.resizable = true;
     row.addSpacer(8);
-    createText(row, `${priceToday}p`, 23, WHITE_COLOR);
+
+    createText(row, `${data.today}p`, 23, WHITE_COLOR);
+
+    // Display tomorrow's price and change
+    if (data.tomorrow !== "N/A") {
+        let change = data.today !== "N/A" ? ((parseFloat(data.tomorrow) - parseFloat(data.today)) / parseFloat(data.today)) * 100 : 0;
+        let arrow = change > 0 ? "↑" : (change < 0 ? "↓" : ""); // Determine arrow based on change
+        let textColor = change > 0 ? ERROR_COLOR : (change < 0 ? SUCCESS_COLOR : WHITE_COLOR);
+        let subText = `Tomorrow: ${data.tomorrow}p ${arrow}`;
+        createText(widget, subText, 12, textColor);
+    } else {
+        createText(widget, "Tomorrow: N/A", 8, WHITE_COLOR);
+    }
+
     widget.addSpacer(20); // Add final spacer for layout
 }
 
