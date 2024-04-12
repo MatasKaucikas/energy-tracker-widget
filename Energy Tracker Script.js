@@ -11,56 +11,65 @@ header.textColor = Color.white(); // Set the color of the header text
 widget.addSpacer(8); // Add space below the header
 
 // Function to adjust the given date for British Summer Time (BST)
-function adjustForBST(date) {
-    // BST starts at 01:00 UTC on the last Sunday of March
-    const bstStart = new Date(Date.UTC(date.getUTCFullYear(), 2, 31));
-    bstStart.setUTCDate(bstStart.getUTCDate() - bstStart.getUTCDay()); // Move to last Sunday
-    bstStart.setUTCHours(1, 0, 0, 0); // Set to 01:00 UTC
-
-    // BST ends at 01:00 UTC on the last Sunday of October
-    const bstEnd = new Date(Date.UTC(date.getUTCFullYear(), 9, 31));
-    bstEnd.setUTCDate(bstEnd.getUTCDate() - bstEnd.getUTCDay());
-    bstEnd.setUTCHours(1, 0, 0, 0);
-
-    // Check if current date is within BST period
-    if (date >= bstStart && date < bstEnd) {
-        // Adjust for BST by adding one hour
-        return new Date(date.getTime() + 3600000);
-    }
-    return date; // Return unmodified date if not within BST period
+function isBST(date) {
+    var lastMarchSunday = new Date(Date.UTC(date.getUTCFullYear(), 2, 31));
+    lastMarchSunday.setUTCDate(lastMarchSunday.getUTCDate() - lastMarchSunday.getUTCDay());
+    var lastOctoberSunday = new Date(Date.UTC(date.getUTCFullYear(), 9, 31));
+    lastOctoberSunday.setUTCDate(lastOctoberSunday.getUTCDate() - lastOctoberSunday.getUTCDay());
+    return date >= lastMarchSunday && date < lastOctoberSunday;
 }
 
-// Function to fetch tariff data for electricity or gas
+function adjustForBST(date) {
+    if (isBST(date)) {
+        // Add one hour if the date is within BST period
+        return new Date(date.getTime() + 3600000);
+    }
+    return date;
+}
+
 async function fetchTariffData(productCode, tariffCode) {
-    const today = adjustForBST(new Date()); // Get today's date
-    const tomorrow = adjustForBST(new Date(today.getTime() + 86400000)); // Calculate tomorrow's date
-    const baseUrl = `https://api.octopus.energy/v1/products/${productCode}/`; // Base URL for the API
-    const tariffType = tariffCode.substring(0, 1).toUpperCase() == 'G' ? 'gas' : 'electricity';
+    const londonTime = new Date(new Date().toLocaleString("en-US", { timeZone: "Europe/London" }));
+    const currentHour = londonTime.getHours();
 
+    let today = new Date();
+    let tomorrow = new Date(today.getTime() + 86400000);
+
+    // Adjusting the base dates if before 4 PM London time
+    if (currentHour < 16) {
+        today = new Date(today.getTime() - 86400000); // Move 'today' one day back
+        tomorrow = new Date(); // Set 'tomorrow' to today
+    }
+
+    today = adjustForBST(today);
+    tomorrow = adjustForBST(tomorrow);
+
+    const baseUrl = `https://api.octopus.energy/v1/products/${productCode}/`;
+    const tariffType = tariffCode.substring(0, 1).toUpperCase() === 'G' ? 'gas' : 'electricity';
+    
     let urlToday, urlTomorrow;
-    if (tariffType == 'electricity') {
-        // Handle electricity tariffs (half-hourly updates)
-        let startOfHalfHour = new Date(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate(), today.getUTCHours(), today.getUTCMinutes() >= 30 ? 30 : 0, 0);
+    if (tariffType === 'electricity') {
+        // Ensuring that the day aligns with 11 PM to 11 PM UK time logic
+        let startOfHalfHour = new Date(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate(), 23, 0, 0);
         startOfHalfHour = adjustForBST(startOfHalfHour);
-        const endOfHalfHour = new Date(startOfHalfHour.getTime() + (30 * 60 * 1000));
-        urlToday = `${baseUrl}electricity-tariffs/${tariffCode}/standard-unit-rates/?period_from=${startOfHalfHour.toISOString()}&period_to=${endOfHalfHour.toISOString()}`;
+        let endOfHalfHour = new Date(startOfHalfHour.getTime() + (30 * 60 * 1000));
 
-        let startOfHalfHourTomorrow = new Date(tomorrow.getUTCFullYear(), tomorrow.getUTCMonth(), tomorrow.getUTCDate(), tomorrow.getUTCHours(), tomorrow.getUTCMinutes() >= 30 ? 30 : 0, 0);
+        let startOfHalfHourTomorrow = new Date(tomorrow.getUTCFullYear(), tomorrow.getUTCMonth(), tomorrow.getUTCDate(), 23, 0, 0);
         startOfHalfHourTomorrow = adjustForBST(startOfHalfHourTomorrow);
-        const endOfHalfHourTomorrow = new Date(startOfHalfHourTomorrow.getTime() + (30 * 60 * 1000));
-        urlTomorrow = `${baseUrl}electricity-tariffs/${tariffCode}/standard-unit-rates/?period_from=${startOfHalfHourTomorrow.toISOString()}&period_to=${endOfHalfHourTomorrow.toISOString()}`;
-    } else if (tariffType == 'gas') {
-        // Handle gas tariffs (daily updates)
-        const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-        urlToday = `${baseUrl}gas-tariffs/${tariffCode}/standard-unit-rates/?period_from=${todayStr}T00:00:00Z&period_to=${todayStr}T23:59:59Z`;
+        let endOfHalfHourTomorrow = new Date(startOfHalfHourTomorrow.getTime() + (30 * 60 * 1000));
 
-        const tomorrowStr = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, '0')}-${String(tomorrow.getDate()).padStart(2, '0')}`;
+        urlToday = `${baseUrl}electricity-tariffs/${tariffCode}/standard-unit-rates/?period_from=${startOfHalfHour.toISOString()}&period_to=${endOfHalfHour.toISOString()}`;
+        urlTomorrow = `${baseUrl}electricity-tariffs/${tariffCode}/standard-unit-rates/?period_from=${startOfHalfHourTomorrow.toISOString()}&period_to=${endOfHalfHourTomorrow.toISOString()}`;
+    } else if (tariffType === 'gas') {
+        const todayStr = today.toISOString().slice(0, 19) + 'Z';
+        const tomorrowStr = tomorrow.toISOString().slice(0, 19) + 'Z';
+
+        urlToday = `${baseUrl}gas-tariffs/${tariffCode}/standard-unit-rates/?period_from=${todayStr}T00:00:00Z&period_to=${todayStr}T23:59:59Z`;
         urlTomorrow = `${baseUrl}gas-tariffs/${tariffCode}/standard-unit-rates/?period_from=${tomorrowStr}T00:00:00Z&period_to=${tomorrowStr}T23:59:59Z`;
     } else {
         console.error(`Invalid tariff type: ${tariffType}`);
         return { today: "N/A", tomorrow: "N/A" };
     }
-
+    
     let dataToday, dataTomorrow;
     try {
         let responseToday = await new Request(urlToday).loadJSON();
@@ -146,5 +155,5 @@ if (!config.runsInWidget) {
 }
 
 // Set the widget in the scriptable app
-Script.setWidget(widget); 
+Script.setWidget(widget);
 Script.complete();
