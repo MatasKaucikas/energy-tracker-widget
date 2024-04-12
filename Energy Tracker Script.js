@@ -64,18 +64,22 @@ async function fetchTariffData(productCode, tariffCode) {
         return { today: "N/A", tomorrow: "N/A" };
     }
 
-    // Fetch and process tariff data for today and tomorrow
+    let dataToday, dataTomorrow;
     try {
         const responseToday = await new Request(urlToday).loadJSON();
+        dataToday = responseToday.results[0].value_inc_vat.toFixed(2);
         console.log("Data fetched successfully for today:", responseToday);
 
         if (tariffType === 'electricity') {
             const responseTomorrow = await new Request(urlTomorrow).loadJSON();
+            dataTomorrow = responseTomorrow.results[0].value_inc_vat.toFixed(2);
             console.log("Data fetched successfully for tomorrow's same half-hour:", responseTomorrow);
         }
     } catch (error) {
         console.error(`Error fetching tariff data: ${error}`);
     }
+
+    return { today: dataToday, tomorrow: dataTomorrow };
 }
 
 // Function to display the tariff data on the widget
