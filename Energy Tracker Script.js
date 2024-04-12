@@ -12,7 +12,7 @@ function createText(widget, content, fontSize, color, fontWeight = 'bold') {
     return text;
 }
 
-// Function to adjust the current time to the closest previous half-hour mark (Updated Function)
+// Function to adjust the current time to the closest previous half-hour mark
 function getAdjustedTimes() {
     const now = new Date();
     const localTime = new Date(now.toLocaleString("en-US", { timeZone: "Europe/London" }));
@@ -26,8 +26,8 @@ function getAdjustedTimes() {
 
 // Function to build URL for API request
 function buildUrl(productCode, tariffCode, periodStart, periodEnd, tariffType) {
-    let dateStr = periodStart.toISOString().replace(/\.\d+/, '');
-    let periodStr = `${dateStr}&period_to=${periodEnd.toISOString().replace(/\.\d+/, '')}`;
+    let dateStr = periodStart.toISOString();
+    let periodStr = `${dateStr}&period_to=${periodEnd.toISOString()}`;
     return `${BASE_URL}${productCode}/${tariffType}-tariffs/${tariffCode}/standard-unit-rates/?period_from=${periodStr}`;
 }
 
@@ -44,8 +44,8 @@ async function fetchTariffData(productCode, tariffCode, tariffType) {
     try {
         const responseToday = await new Request(urlToday).loadJSON();
         const responseTomorrow = await new Request(urlTomorrow).loadJSON();
-        const todayPrice = responseToday.results[0]?.value_inc_vat || "N/A";
-        const tomorrowPrice = responseTomorrow.results[0]?.value_inc_vat || "N/A";
+        const todayPrice = responseToday.results[0]?.value_inc_vat.toFixed(2) || "N/A";
+        const tomorrowPrice = responseTomorrow.results[0]?.value_inc_vat.toFixed(2) || "N/A";
         return { today: todayPrice, tomorrow: tomorrowPrice };
     } catch (error) {
         console.error(`Error fetching data: ${error}`);
@@ -89,7 +89,7 @@ async function displayTariffData(productCode, tariffCode, symbolName, widget) {
 const widget = new ListWidget();
 widget.backgroundColor = new Color("#100030");
 createText(widget, "Energy Tracker", 14, WHITE_COLOR);
-widget.addSpacer(8);
+widget.addSpacer(4);
 const regionCode = "C";
 const gasProductCode = "SILVER-23-12-06";
 const electricityProductCode = "AGILE-23-12-06";
