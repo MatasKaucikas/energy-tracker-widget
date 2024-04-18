@@ -42,6 +42,15 @@ Energy Tracker allows for basic customisation through the script code. You can a
 
 If you encounter any issues with data not displaying correctly, ensure your device has an active internet connection and that there are no typos in the product and tariff codes. For further assistance, open an issue on this GitHub repository.
 
+The widget currently accomodates December 2023 v1 for both Tracker and Agile. If you enrolled to either tariff after April, you'll automatically be enrolled onto April 2024 v1. This means that the prices which the widget will showcase won't match with the Octopus app. To remediate this, please make the following adjustments to the script:
+
+```
+const gasProductCode = "SILVER-24-04-03";
+const electricityProductCode = "AGILE-24-04-03";
+const gasTariffCode = `G-1R-SILVER-24-04-03-${regionCode}`;
+const electricityTariffCode = `E-1R-AGILE-24-04-03-${regionCode}`;
+```
+
 ## Contribution
 
 Contributions to Energy Tracker are welcome! Whether it's suggesting new features, reporting bugs, or improving the code, feel free to open an issue or pull request.
